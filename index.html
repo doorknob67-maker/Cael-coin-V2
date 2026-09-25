@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cael coin V2</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+  header { padding: 20px; background: #161b22; border-bottom: 1px solid #30363d; text-align: center; position: sticky; top: 0; z-index: 10; }
+ .logo { font-size: 24px; font-weight: 800; letter-spacing: 0.5px; }
+ .logo span { color: #58a6ff; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+ .stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+ .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px 18px; flex: 1; min-width: 140px; }
+ .stat-label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing:.5px; }
+ .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+ .up { color: #3fb950; }.down { color: #f85149; }
+ .chart-wrap { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; height: 420px; }
+ .hint { margin-top: 16px; color: #8b949e; font-size: 14px; text-align: center; }
+ .hint code { background: #21262d; padding: 2px 6px; border-radius: 6px; color: #e6edf3; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Cael coin <span>V2</span></div>
+</header>
+
+<main>
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Current Price</div>
+      <div class="stat-value" id="currentPrice">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Change</div>
+      <div class="stat-value" id="priceChange">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Data Points</div>
+      <div class="stat-value" id="dataPoints">—</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="chart"></canvas>
+  </div>
+
+  <p class="hint">Edit <code>data.json</code> in your GitHub repo to change price / date / time. Refresh the page to see updates.</p>
+</main>
+<script>
+let chart;
+
+async function loadData() {
+  const res = await fetch('data.json?t=' + Date.now());
+  const raw = await res.json();
+  return raw.map(d => ({ time: d.time, price: Number(d.price) }));
+}
+
+function renderChart(data) {
+  const labels = data.map(d => d.time);
+  const prices = data.map(d => d.price);
+
+  const first = prices[0], last = prices[prices.length - 1];
+  const change = last - first;
+  const pct = (change / first * 100).toFixed(2);
+  const isUp = change >= 0;
+
+  document.getElementById('currentPrice').textContent = '$' + last.toFixed(2);
+  const chEl = document.getElementById('priceChange');
+  chEl.textContent = (isUp? '+' : '') + change.toFixed(2) + ' (' + pct + '%)';
+  chEl.className = 'stat-value ' + (isUp? 'up' : 'down');
+  document.getElementById('dataPoints').textContent = data.length;
+
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Price',
+        data: prices,
+        borderColor: isUp? '#3fb950' : '#f85149',
+        backgroundColor: isUp? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)',
+        fill: true,
+        tension: 0.2,
+        pointRadius: 3,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8b949e', maxTicksLimit: 8 }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#8b949e', callback: v => '$' + v }, grid: { color: '#21262d' } }
+      }
+    }
+  });
+}
+
+loadData().then(renderChart).catch(err => {
+  console.error('Could not load data.json:', err);
+});
+</script>
+</body>
+</html>
