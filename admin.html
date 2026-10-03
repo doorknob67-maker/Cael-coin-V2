@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cael Coin - Admin</title>
+<style>
+ body { background:#0d1117; color:#e6edf3; font-family:system-ui; padding:20px; max-width:800px; margin:auto; }
+ input, textarea { width:100%; background:#161b22; border:1px solid #30363d; color:#e6edf3; padding:12px; border-radius:8px; margin:10px 0; font-family:monospace; }
+ button { background:#238636; color:white; border:0; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; margin:5px 5px 5px 0; }
+ button.secondary { background:#21262d; border:1px solid #30363d; }
+ pre { background:#161b22; border:1px solid #30363d; padding:15px; border-radius:8px; overflow:auto; white-space:pre-wrap; }
+ label { font-size:12px; color:#8b949e; text-transform:uppercase; letter-spacing:0.05em; }
+</style>
+</head>
+<body>
+<h1>Cael Coin - Price Admin</h1>
+<p style="color:#8b949e">Just type price, it auto-adds current time.</p>
+<label>Current data.json (paste whole file)</label>
+<textarea id="current" rows="12" placeholder='[{"time":"2026-09-24 09:30","price":182.5}]'></textarea>
+<label>New Price</label>
+<input id="price" type="number" step="0.01" placeholder="e.g. 2.5">
+<label>Time</label>
+<input id="time" type="text">
+<button onclick="addEntry()">+ Add Entry</button>
+<button class="secondary" onclick="setNow()">Use Current Time</button>
+<button class="secondary" onclick="copyJSON()">Copy JSON</button>
+<h3>Preview</h3>
+<pre id="preview">[]</pre>
+<script>
+function nowString(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function setNow(){ document.getElementById('time').value = nowString(); }
+setNow();
+let entries = [];
+function parseCurrent(){
+  try {
+    const t = document.getElementById('current').value.trim();
+    if(!t) { entries = []; return; }
+    entries = JSON.parse(t);
+    if(!Array.isArray(entries)) entries = [];
+  } catch(e){}
+  updatePreview();
+}
+document.getElementById('current').addEventListener('input', parseCurrent);
+function addEntry(){
+  parseCurrent();
+  const price = parseFloat(document.getElementById('price').value);
+  const time = document.getElementById('time').value.trim();
+  if(isNaN(price) || !time){ alert('Enter price and time'); return; }
+  entries.push({time, price});
+  entries.sort((a,b)=> a.time.localeCompare(b.time));
+  document.getElementById('current').value = JSON.stringify(entries, null, 2);
+  updatePreview();
+  document.getElementById('price').value = '';
+  setNow();
+}
+function updatePreview(){
+  document.getElementById('preview').textContent = JSON.stringify(entries, null, 2);
+}
+function copyJSON(){
+  navigator.clipboard.writeText(JSON.stringify(entries, null, 2));
+  alert('Copied! Paste into data.json and commit.');
+}
+parseCurrent();
+</script>
+</body>
+</html>
